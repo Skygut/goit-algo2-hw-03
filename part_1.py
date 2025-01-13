@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
+import pandas as pd
 
 
 def bfs(capacity, flow, source, sink, parent):
@@ -118,19 +119,23 @@ capacity = [[0] * len(nodes_new) for _ in range(len(nodes_new))]
 for from_node, to_node, cap in edges_new:
     capacity[get_index(from_node)][get_index(to_node)] = cap
 
-source = get_index("Термінал 1")
-sink = get_index("Магазин 3")  # Останній магазин як приклад кінцевої точки
+# Потоки для Терміналів 1 і 2
+all_flows_combined = []
+for terminal in ["Термінал 1", "Термінал 2"]:
+    source = get_index(terminal)
+    for store in [node for node in nodes_new if "Магазин" in node]:
+        sink = get_index(store)
+        max_flow, flow = edmonds_karp(capacity, source, sink)
+        all_flows_combined.append((terminal, store, max_flow))
 
-max_flow, flow = edmonds_karp(capacity, source, sink)
+# Формування об'єднаного табличного звіту
+print("\n=== Об'єднаний звіт про потоки між Терміналами і магазинами ===")
+print(f"{'Термінал':<12} | {'Магазин':<12} | {'Фактичний Потік (одиниць)':<24}")
+print("-" * 50)
+for flow_data in all_flows_combined:
+    print(f"{flow_data[0]:<12} | {flow_data[1]:<12} | {flow_data[2]:<24}")
 
-print("Максимальний потік:", max_flow)
-print("Фактичний потік:")
-for i in range(len(nodes_new)):
-    for j in range(len(nodes_new)):
-        if flow[i][j] > 0:
-            print(f"{nodes_new[i]} -> {nodes_new[j]}: {flow[i][j]}")
-
-# Отримання позицій вузлів для нового графа
+# Візуалізація нового графа
 pos_new = {
     "Термінал 1": (2, 3),
     "Термінал 2": (4, 3),
@@ -154,16 +159,15 @@ pos_new = {
     "Магазин 14": (7, 1),
 }
 
-# Візуалізація нового графа
+
 plt.figure(figsize=(14, 10))
 nx.draw_networkx_nodes(G_new, pos_new, node_size=700, node_color="lightblue")
 nx.draw_networkx_edges(G_new, pos_new, arrowstyle="->", arrowsize=20, edge_color="gray")
 nx.draw_networkx_labels(G_new, pos_new, font_size=10, font_color="black")
 
-# Додавання міток пропускної здатності
-edge_labels_new = {(u, v): d["capacity"] for u, v, d in G_new.edges(data=True)}
+edge_labels = {(u, v): d["capacity"] for u, v, d in G_new.edges(data=True)}
 nx.draw_networkx_edge_labels(
-    G_new, pos_new, edge_labels=edge_labels_new, font_size=8, font_color="red"
+    G_new, pos_new, edge_labels=edge_labels, font_size=8, font_color="red"
 )
 
 plt.title("Логістична мережа")
